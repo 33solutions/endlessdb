@@ -1,7 +1,8 @@
+samples/_db/*
+tests/_db/*
+
 .pypirc
 pyproject.toml
-
-
 
 
 # Byte-compiled / optimized / DLL files

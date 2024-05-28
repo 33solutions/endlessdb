@@ -1,0 +1,21 @@
+name: endlessdb-samples
+
+services:
+  mongo:
+    container_name: mongo
+    image: mongo:latest
+    restart: always
+    environment:
+      - AUTH=yes
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+    networks: 
+      backend:
+    ports: 
+      - "27017:27017"
+    volumes: 
+      - ./database:/data/db
+
+networks:
+  backend:
+    name: endlessdb-tests
