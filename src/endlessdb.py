@@ -193,7 +193,7 @@ class DocumentLogicContainer():
                     obj = mongo.find_one({"_id": self._key})
                     if obj is None:
                         self.virtual = True
-                        return #raise Exception(f"Document {self._key} not found in collection {_parent}")
+                        return
                     else:
                         self.virtual = False                        
             else:
@@ -210,8 +210,6 @@ class DocumentLogicContainer():
             
         virtual = self.virtual
                        
-        #self._key = path[len(path) - 1]
-        
         _keys  = self._keys.copy()
         self._keys.clear()
         _path = f"{self.path(True)}"
@@ -219,7 +217,6 @@ class DocumentLogicContainer():
         for _key in obj:
             value = obj[_key]
             self._keys.append(_key)  
-            #self.__slots__.append(key)
             
             if isinstance(value, bson.dbref.DBRef):
                 value = _edb[value.collection][value.id]                                
@@ -502,22 +499,23 @@ class CollectionLogicContainer():
         if self.debug:
             repr += "🐞"
         
-        repr += "📚"
-        
-        if self.protected:
-            repr += "🔒"
-        else:
-            repr += "🔓"
-        
-        repr += f"{self._key}"
-        repr += "{" + f"ℓ{self.len()}" + "}"
+        if self._edb is None:
+            repr = f"⚓{self.path(True)}"
+        else:    
+            repr += "📚"
+            
+            if self.protected:
+                repr += "🔒"
+            else:
+                repr += "🔓"
+            
+            repr += f"{self._key}"
+            repr += "{" + f"ℓ{self.len()}" + "}"
             
         if srepr is not None:
             repr += f'/{srepr}'        
                
         if parent is None:
-            if self._edb is None:
-                return f"⚓{self.path(True)}"
             return repr           
         else:
             return parent().repr(repr)            
@@ -1058,7 +1056,6 @@ class EndlessCollection():
             collection.update_one({'_id': key }, {"$set": value}, upsert=True)            
             _path = f"{_self.path(True)}/{key}"
             documents = _self.edb()().documents()
-            #_path = f"{self._key}.{path}"
             if _path in documents:
                 documents[_path]().reload()                         
         else:
@@ -1080,7 +1077,6 @@ class EndlessCollection():
         if isinstance(key, int):
             return self.__getattr__(key)
         
-        #key = f"{_self.path()}/{key}"
         path = key.replace("/", ".").split(".", 1)
         if len(path) > 1:
             next_path = path[0]
@@ -1236,5 +1232,4 @@ class EndlessService():
         self._cfg = _config[config_key]
         self._log = Logger(__name__)
         self.DEBUG = self._cfg(False, create=True).debug
-        self._edb.load_defaults()
-        
+        self._edb().load_defaults()
