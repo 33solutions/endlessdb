@@ -665,8 +665,7 @@ class DatabaseLogicContainer():
         self.__ = _.__dict__          
         self._collections = {}
         self._documents = {}
-        path = Path(__file__).parent.parent.resolve()
-        self._defaults_collection = CollectionLogicContainer.from_yml(path/self._cfg.CONFIG_YML)
+        self._defaults_collection = CollectionLogicContainer.from_yml(self._cfg.CONFIG_YML)
         defaults = self.defaults()
         
         self._url = self.url_info(self._cfg.MONGO_URI)
