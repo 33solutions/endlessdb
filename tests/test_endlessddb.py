@@ -1,13 +1,30 @@
 import uuid
 import pymongo
 from pathlib import Path
+
+import pytest
 from src.endlessdb import (
+    EndlessConfiguration,
     EndlessDatabase,
     EndlessCollection,
     EndlessDocument,
     EndlessService    
 )
 
+class TestConfiguration(EndlessConfiguration):
+    __test__ = False
+    def override(self):
+        self.CONFIG_YML = "tests/config.yml"
+        self.MONGO_URI = "mongodb://admin:admin@localhost:27017/"
+
+class TestInheritedConfiguration(TestConfiguration):
+    __test__ = False
+    def override(self):
+        self.CONFIG_COLLECTION = "test_config"
+        self.MONGO_URI = "mongodb://root:root@localhost:27117/"
+        self.MONGO_DATABASE = "tests-endlessdb"
+
+@pytest.mark.skip()
 def test_reading_all(edb, edbl, results):
     tests = {
         "✅": {}, 
@@ -43,6 +60,7 @@ def test_reading_all(edb, edbl, results):
     }
     return tests
     
+@pytest.mark.skip()
 def test_reading_db(edb, tests):
     edbl = edb()
     test = {
@@ -67,7 +85,8 @@ def test_reading_db(edb, tests):
     assert test_pass == "✅"
     
     return test
-    
+
+@pytest.mark.skip()    
 def test_reading(ol, parent, k, tests):
     o = parent[k]
     test = {
@@ -85,7 +104,8 @@ def test_reading(ol, parent, k, tests):
     print(f"{test_pass}: reading: {path}")
     assert test_pass == "✅" 
     return test
-    
+
+@pytest.mark.skip()    
 def test_logic(o, ol, tests):
     test = {
         "len": ol.len(),
@@ -129,7 +149,8 @@ def test_logic(o, ol, tests):
     print(f"{test_pass}: logic: {path}")
     assert test_pass == "✅" 
     return test
-    
+
+@pytest.mark.skip()    
 def test_writing(path, edb, edbl, results):
     
     tests = {
@@ -285,6 +306,7 @@ def test_writing(path, edb, edbl, results):
     
     return tests    
 
+@pytest.mark.skip()
 def test_export(path, edbl, results):
     tests = {
         "✅": {}, 
@@ -301,9 +323,13 @@ def test_export(path, edbl, results):
     
     return tests
 
+@pytest.fixture
+def edb():
+    return EndlessDatabase()
+
 def test(edb):
     results = {}    
-    path = Path("assistant/tests")
+    path = Path("tests/export")
     path.mkdir(parents=True, exist_ok=True)
     
     edbl = edb()    
@@ -311,9 +337,15 @@ def test(edb):
        
     #test_reading_all(edb, edbl, results)    
     test_writing(path, edb, edbl, results)
-    test_export(path, edbl, results)
-     
-    return results
+    test_export(path, edbl, results)     
 
-edb = EndlessDatabase("mongodb://root@root:localhost:27117")
-test(edb)
+cfg = EndlessConfiguration()
+TestConfiguration.apply()
+assert cfg.MONGO_URI == "mongodb://admin:admin@localhost:27017/"
+TestInheritedConfiguration.apply()
+
+assert cfg.CONFIG_COLLECTION == "test_config"
+assert cfg.CONFIG_YML == "tests/config.yml"
+assert cfg.MONGO_URI == "mongodb://root:root@localhost:27117/"
+assert cfg.MONGO_DATABASE == "tests-endlessdb"
+assert cfg.eee == None

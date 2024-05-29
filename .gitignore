@@ -1,5 +1,6 @@
-samples/_db/*
-tests/_db/*
+samples/_db
+tests/_db
+tests/export
 
 .pypirc
 pyproject.toml

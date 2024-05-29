@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import os
 import re
 import uuid
@@ -16,9 +17,6 @@ from pathlib import Path, PosixPath
 from datetime import datetime
 from bson.objectid import ObjectId
 from functools import partial
-
-ENDLESSDB_CONFIG_COLLECTION = "config"
-ENDLESSDB_CONFIG_DEFAULTS_YML = "config.yml"
 
 class Logger:
     def __init__(self, name):
@@ -46,6 +44,61 @@ class Logger:
     def error(self, msg):
         self._logger.error(f"{self.name}: {msg}")
 
+class EndlessConfiguration():
+    _override = {}
+    
+    def __init__(self) -> None:
+        if type(self) == EndlessConfiguration:
+            self.CONFIG_COLLECTION = "config"
+            self.CONFIG_YML: str = "config.yml"
+            self.MONGO_URI = "mongodb://localhost:27017/"
+            self.MONGO_DATABASE = "endlessdb"
+        else:
+            self.override()
+    
+    @classmethod
+    def apply(cls):
+        if issubclass(cls, EndlessConfiguration):
+            if len(cls.__bases__) > 0 and issubclass(cls.__bases__[0], EndlessConfiguration):
+                EndlessConfiguration._override[str(cls.__bases__[0])] = cls()
+    
+    @abstractmethod
+    def override(self):
+        pass
+    
+    def __getattr__(self, key: str) -> Any:
+        c = type(self)
+        cs = str(c)
+        _ov = None
+        if cs in EndlessConfiguration._override:
+            _ov = EndlessConfiguration._override[cs].__getattr__(key)
+            
+        if _ov is not None:
+            return  _ov
+        
+        if key in self.__dict__:
+            return self.__dict__[key]
+        
+        return None 
+        
+    def __getitem__(self, key: str) -> Any:
+        return self.__getattr__(key)
+         
+    def __getattribute__(self, name: str) -> Any:
+        if name == "__class__":
+            return type(self)
+        
+        _dict = super().__getattribute__("__dict__")
+        if name == "__dict__":
+            return _dict
+        
+        _dir = dir(self)        
+        if name in _dict \
+            or name not in _dir:
+            return self.__getattr__(name)
+        
+        return super().__getattribute__(name)
+    
 #region 📌Common
 
 def re_mask_subgroup(subgroup, mask, m):
@@ -67,7 +120,8 @@ def is_magic_method(method):
     
     return method.startswith("__") and method.endswith("__")
 
-### Class for wrapping logic container    
+### Class for wrapping logic container (TO DO) 
+
 class w():    
     def __init__(self, d) -> Any:
         self.d = d
@@ -625,34 +679,26 @@ class DatabaseLogicContainer():
         return self._
         
     def __init__(self, _, url = None, host = "localhost", port = 27017, user = "", password = ""):
+        self._cfg = EndlessConfiguration()
         self.debug = False
         self._ = _
         self.__ = _.__dict__          
         self._collections = {}
         self._documents = {}
         path = Path(__file__).parent.parent.resolve()
-        self._defaults_collection = CollectionLogicContainer.from_yml(path/ENDLESSDB_CONFIG_DEFAULTS_YML)
+        self._defaults_collection = CollectionLogicContainer.from_yml(path/self._cfg.CONFIG_YML)
         defaults = self.defaults()
         
-        self._cfg = defaults(protected=True).mongo   
-        self._key = self._cfg(str, exception=True).database
+        self._url = self.url_info(self._cfg.MONGO_URI)
+        self._key = self._cfg.MONGO_DATABASE
         
-        if url is None:
-            if host is None:
-                url = self.build_url(
-                    self._cfg(str, exception=True).host,
-                    self._cfg(int, exception=True).port,
-                    self._cfg(str, exception=True).user,
-                    self._cfg(str, exception=True).password                    
-                )                
-            else:
-                url = self.build_url(host, port, user, password)
+        # if url is None:
+        #     url = self.build_url(host, port, user, password)
         
-        self._mongo = pymongo.MongoClient(url, connect=False)
+        self._mongo = pymongo.MongoClient(self._cfg.MONGO_URI, connect=False)
         self._edb = self._mongo[self._key]
-        self._url = self.url_info(url)
         
-        self._collections[ENDLESSDB_CONFIG_COLLECTION] = EndlessCollection(ENDLESSDB_CONFIG_COLLECTION, self(), None, defaults, self._edb)
+        self._collections[self._cfg.CONFIG_COLLECTION] = EndlessCollection(self._cfg.CONFIG_COLLECTION, self(), None, defaults, self._edb)
     
     def __repr__(self) -> str:
         return f"🧩logic:({self.repr()})"
@@ -686,7 +732,7 @@ class DatabaseLogicContainer():
         return self._key
         
     def keys(self):
-        _filter = {"name": {"$regex": r"^(?!^%s$).+$" % CONFIG_COLLECTION}}
+        _filter = {"name": {"$regex": r"^(?!^%s$).+$" % self._cfg.CONFIG_COLLECTION}}
         return self.mongo().list_collection_names(filter=_filter)
         
     def mongo(self) -> pymongo.database.Database:
@@ -696,7 +742,7 @@ class DatabaseLogicContainer():
         return None
     
     def config(self):
-        return self._collections[CONFIG_COLLECTION]
+        return self._collections[self._cfg.CONFIG_COLLECTION]
     
     def defaults(self):
         return self._defaults_collection
@@ -1217,9 +1263,9 @@ class EndlessService():
     
     DEBUG = False
     
-    _edb: EndlessDatabase
-    _cfg: EndlessCollection
-    _log: Logger
+    # _edb: EndlessDatabase
+    # _cfg: EndlessCollection
+    # _log: Logger
     
     def __init__(self, edb, config_key):
         if edb is None:
