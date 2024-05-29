@@ -160,18 +160,10 @@ class DocumentLogicContainer():
         self.descendant_rewrite = False
         self.descendant_exception = False
         
-        # if virtual:
-        #     path = self._path.split("/")
-        #     self._key = path[-1]              
-                
-        # else:
         self._reload(obj) 
     
     def __call__(self):
         return self._
-    
-    # def __setattr__(self, key: str, value):
-    #     raise Exception(f"{self} is read-only")
     
     #endregion 📌Magic
     
@@ -274,10 +266,6 @@ class DocumentLogicContainer():
             if _key not in self._keys:
                 del self.__[_key]                        
             
-        # if "_id" not in self._keys:
-        #     self.__["_id"] = self._key
-        #     self._keys.append("_id")
-            
     def repr(self, srepr = None) -> str:
         parent = self.parent()
         repr = ""
@@ -316,8 +304,6 @@ class DocumentLogicContainer():
             _path = f"{self.path(True)}/{key}"
             if _path in documents:
                 property = documents[_path]
-                # if reload:
-                #     property.reload()            
             else:
                 property = EndlessDocument(key, obj, self, virtual)
                 documents[_path] = property
@@ -476,12 +462,6 @@ class CollectionLogicContainer():
         if self._edb is not None:
             _path = f"{self.path(True)}/{key}"
             documents = self._edb().documents()
-            # realpath = _path[0]
-            # for i in range(1, len(_path) - 2):
-            #     realpath += "."
-            #     realpath += _path[i]
-            # if realpath == "":
-            #     ttt = 5      
             if _path in documents:
                 document = documents[_path]
                 document().reload()            
@@ -691,9 +671,6 @@ class DatabaseLogicContainer():
         
         self._url = self.url_info(self._cfg.MONGO_URI)
         self._key = self._cfg.MONGO_DATABASE
-        
-        # if url is None:
-        #     url = self.build_url(host, port, user, password)
         
         self._mongo = pymongo.MongoClient(self._cfg.MONGO_URI, connect=False)
         self._edb = self._mongo[self._key]
@@ -993,20 +970,6 @@ class EndlessCollection():
         else:
             return _self
     
-    # def __call__(self, descendant_expected = None, **kwargs):
-    #     _self = self.__dict__["***"]       
-    #     if descendant_expected is None:
-    #         return self.__dict__["***"]
-        
-    #     if "exception" in kwargs and kwargs["exception"]:
-    #         _self.descendant_exception = kwargs["exception"] == True
-                
-    #     if "create" in kwargs and kwargs["create"]:
-    #         _self.descendant_create = kwargs["create"] == True            
-            
-    #     _self.descendant_expected = descendant_expected
-    #     return self
-    
     def __eq__(self, other):
         _self = self.__dict__["***"]
         if other is None:
@@ -1221,9 +1184,6 @@ class EndlessDatabase():
         return collection
     
     def __setattr__(self, key, value):
-        # if key in self.__dict__:
-        #     self.__dict__[key] = value
-        
         try:
             key = int(key)
         except:
@@ -1263,10 +1223,6 @@ class EndlessService():
     
     DEBUG = False
     
-    # _edb: EndlessDatabase
-    # _cfg: EndlessCollection
-    # _log: Logger
-    
     def __init__(self, edb, config_key):
         if edb is None:
             edb = EndlessDatabase()
@@ -1275,10 +1231,5 @@ class EndlessService():
         self._cfg = _config[config_key]
         self._log = Logger(__name__)
         self.DEBUG = self._cfg(False, create=True).debug
-        _edb.load_defaults()
+        self._edb.load_defaults()
         
-        if self.DEBUG:
-            _edb = self._edb()
-            
-            _edb.test()
-
