@@ -49,10 +49,16 @@ class EndlessConfiguration():
     
     def __init__(self) -> None:
         if type(self) == EndlessConfiguration:
-            self.CONFIG_COLLECTION = "config"
-            self.CONFIG_YML: str = "config.yml"
+            self.MONGO_HOST = os.environ.get("CORE_MONGO_HOST", "mongo")
+            self.MONGO_PORT = int(os.environ.get("CORE_MONGO_PORT", 27017))
+            self.MONGO_USER = os.environ.get("CORE_MONGO_USER", "root")
+            self.MONGO_PASSWORD = os.environ.get("CORE_MONGO_PASSWORD", "root")
+            self.MONGO_DATABASE = os.environ.get("CORE_MONGO_DATABASE", "endlessdb")
             self.MONGO_URI = "mongodb://localhost:27017/"
             self.MONGO_DATABASE = "endlessdb"
+            
+            self.CONFIG_COLLECTION = "config"
+            self.CONFIG_YML: str = "~/config.yml"            
         else:
             self.override()
     
