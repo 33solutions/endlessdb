@@ -12,9 +12,9 @@ services:
     networks: 
       backend:
     ports: 
-      - "27017:27017"
+      - "27117:27017"
     volumes: 
-      - ./database:/data/db
+      - ./_db:/data/db
 
 networks:
   backend:

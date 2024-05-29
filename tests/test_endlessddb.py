@@ -315,5 +315,5 @@ def test(edb):
      
     return results
 
-edb = EndlessDatabase("mongodb://root@root:localhost:27017")
+edb = EndlessDatabase("mongodb://root@root:localhost:27117")
 test(edb)
