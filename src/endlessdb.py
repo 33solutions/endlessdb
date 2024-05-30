@@ -62,6 +62,12 @@ class EndlessConfiguration():
         else:
             self.override()
     
+    def __str__(self) -> str:
+        return f"⚙️Endlessdb configuration({self.__class__.__name__})"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
+    
     @classmethod
     def apply(cls):
         if issubclass(cls, EndlessConfiguration):
@@ -237,14 +243,12 @@ class DocumentLogicContainer():
                                 document = self.descendant(_key, value, virtual, False)                                    
                             else:
                                 documents = self.edb()().documents()
-                                #_path = f"{self._key}.{path}"
                                 if _property_path in documents:
                                     document = documents[_property_path]
                                 else:
                                     document = None
-                                if document is not None \
-                                    and _key in document \
-                                    and isinstance(document[_key], EndlessDocument):
+                                
+                                if document is not None:
                                     document()._reload(value)
                                 else:
                                     document = self.descendant(_key, value, virtual, False) 
