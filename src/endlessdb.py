@@ -1,21 +1,27 @@
-from abc import abstractmethod
-import base64
 import os
 import re
 import uuid
 import bson
-import pymongo.collection
-import pymongo.database
 import yaml
 import uuid
 import json
+import base64
 import pymongo
 import inspect
 import logging
+import pymongo.collection
+import pymongo.database
 
+from abc import abstractmethod
 from typing import Any
-from pathlib import Path, PosixPath
-from datetime import datetime
+from pathlib import (
+    Path,
+    PosixPath
+)
+from datetime import (
+    date,
+    datetime
+)
 from bson.objectid import ObjectId
 from functools import partial
 
@@ -170,10 +176,13 @@ def re_mask_subgroup(subgroup, mask, m):
         length = end - start
         return m.group()[:start] + mask*length + m.group()[end:]
 
-def json_parser(obj):
+def json_default_encoder(obj):
     if isinstance(obj, bytes):
         return base64.b64encode(obj).decode("utf-8")
     
+    if isinstance(obj, (date, datetime)):
+        return obj.isoformat()
+        
     if hasattr(obj, "__dict__"):
         return obj.__dict__
     else:
@@ -475,7 +484,7 @@ class DocumentLogicContainer():
         _dict = dict(self.to_dict(**kwargs))
         _json = json.dumps(
             _dict, 
-            default=json_parser, 
+            default=json_default_encoder, 
             ensure_ascii=False
         )           
         
@@ -727,7 +736,7 @@ class CollectionLogicContainer():
             to_base64 = False
         
         _dict = dict(self.to_dict(**kwargs))
-        _json = json.dumps(_dict, default=json_parser, ensure_ascii=False) 
+        _json = json.dumps(_dict, default=json_default_encoder, ensure_ascii=False) 
         
         if to_base64:
             return base64.b64encode(_json.encode("utf-8")).decode("utf-8")
@@ -746,7 +755,11 @@ class CollectionLogicContainer():
             except yaml.YAMLError as exc:
                 print(f'YAML parsing error:\n{exc}')
                 raise exc
-            
+        if not isinstance(path, PosixPath):
+            if os.name == 'nt':
+                path = Path(path)
+            else:
+                path = PosixPath(path)
         return EndlessCollection(path.name, None, yml)
 
     #endregion 📌Methods
@@ -855,7 +868,7 @@ class DatabaseLogicContainer():
             to_base64 = False
             
         _dict = dict(self.to_dict())
-        _json = json.dumps(_dict, default=json_parser, ensure_ascii=False)
+        _json = json.dumps(_dict, default=json_default_encoder, ensure_ascii=False)
         
         if to_base64:
             return base64.b64encode(_json.encode("utf-8")).decode("utf-8")

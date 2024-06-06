@@ -1,3 +1,4 @@
+from datetime import datetime
 import uuid
 import pymongo
 from pathlib import Path
@@ -7,8 +8,7 @@ from src.endlessdb import (
     EndlessConfiguration,
     EndlessDatabase,
     EndlessCollection,
-    EndlessDocument,
-    EndlessService    
+    EndlessDocument        
 )
 
 class TestConfiguration(EndlessConfiguration):
@@ -166,7 +166,7 @@ def test_writing(path, edb, edbl, results):
     # Testing writing to collection
     col1[doc1uid] = {"property1": 0}    
     doc1 = col1[doc1uid]
-    docl = doc1()    
+    doc1l = doc1()    
     assert doc1.property1 == 0
     
     doc1.property1 = 1
@@ -179,10 +179,13 @@ def test_writing(path, edb, edbl, results):
     col1l.mongo().update_one({ "_id": doc1uid }, { "$set": {"property2": 3} }, upsert=True)                
     assert doc1.property2 == 2
     
-    docl.reload()
+    doc1.datetime = datetime.now()
+    json = doc1l.to_json()
+    
+    doc1l.reload()
     assert doc1.property2 == 3
     
-    docl.delete()
+    doc1l.delete()
     assert  doc1 == None
     #assert col1[doc1uid] == None
     
@@ -235,18 +238,18 @@ def test_writing(path, edb, edbl, results):
     # cfg["ai.openai.api.base"] = "https://openai.ru" ### Set existing key by index
     # tests["val"]["base4"] = cfg["ai.openai.api.base"] ### Retrieve edited existing key by index
 
-    # tests["val"]["base5"] = cfg.fuck_off.openai.api.base  ### Retrieve non existing key
-    # cfg.fuck_off.openai.api.base = "https://openai.com" ### Set non existing key
-    # tests["val"]["base6"] = cfg.fuck_off.openai.api.base ### Retrieve key
+    # tests["val"]["base5"] = cfg.test.openai.api.base  ### Retrieve non existing key
+    # cfg.test.openai.api.base = "https://openai.com" ### Set non existing key
+    # tests["val"]["base6"] = cfg.test.openai.api.base ### Retrieve key
     
-    # cfgl.set("fuck_off.openai.api.base", "https://openai.am")  ### Set key
-    # tests["val"]["base7"] = cfg.fuck_off.openai.api.base  ### Retrieve key
+    # cfgl.set("test.openai.api.base", "https://openai.am")  ### Set key
+    # tests["val"]["base7"] = cfg.test.openai.api.base  ### Retrieve key
     
-    # cfg["fuck_off.openai.api.base"] = "https://openai.ru"  ### Set key by index
-    # tests["val"]["base8"] = cfg["fuck_off.openai.api.base"]  ### Retrieve key by index
+    # cfg["test.openai.api.base"] = "https://openai.ru"  ### Set key by index
+    # tests["val"]["base8"] = cfg["test.openai.api.base"]  ### Retrieve key by index
 
-    # cfg["fuck_off.openai.api.base"] = "https://openai.com"  ### Set key by index
-    # tests["val"]["base9"] = cfg["fuck_off.openai.api.base"]  ### Retrieve key by index
+    # cfg["test.openai.api.base"] = "https://openai.com"  ### Set key by index
+    # tests["val"]["base9"] = cfg["test.openai.api.base"]  ### Retrieve key by index
 
     # tests["val"]["user1"] = cfg.user[157166437]
     # tests["val"]["user_name1"] = cfg["user.157166437"]["first_name"]
@@ -263,12 +266,12 @@ def test_writing(path, edb, edbl, results):
     # doc1uid = str(uuid.uuid4())
     # test_doc = test_col["test_doc"]
     
-    # # test_doc.fuck_off.api(int).base = 5
+    # # test_doc.test.api(int).base = 5
     # # try:
-    # #     test_doc.fuck_off.api(str).base = 7
+    # #     test_doc.test.api(str).base = 7
     # # except Exception as e:     
     # #     pass
-    # api = test_doc.fuck_off.api
+    # api = test_doc.test.api
     # base = api.base
     # api.base = 6    
     # base = api.base
@@ -280,11 +283,11 @@ def test_writing(path, edb, edbl, results):
     # base = api.base
     
     # integer = test_doc.base2(int).integer
-    # string = test_doc.fuck_off.api2.base(str).string
-    # value = test_doc.fuck_off.api3.base({}).string
+    # string = test_doc.test.api2.base(str).string
+    # value = test_doc.test.api3.base({}).string
     
-    # #test_doc.fuck_off().delete()
-    # none = test_doc.fuck_off is None
+    # #test_doc.test().delete()
+    # none = test_doc.test is None
     
     # value = test_doc.something({ "bla": "bla-bla" }, create=True).haha.bla
     
@@ -300,9 +303,6 @@ def test_writing(path, edb, edbl, results):
     # value = test_doc.pro({ "bla": "bla-bla" }, create=True).haha.bla
     
     #endregion TO DO
-    
-    
-    
     
     return tests    
 
@@ -349,3 +349,5 @@ assert cfg.CONFIG_YML == "tests/config.yml"
 assert cfg.MONGO_URI == "mongodb://root:root@localhost:27117/"
 assert cfg.MONGO_DATABASE == "tests-endlessdb"
 assert cfg.eee == None
+
+
