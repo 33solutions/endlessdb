@@ -451,15 +451,20 @@ class DocumentLogicContainer():
         for key in self._keys:
             if key in exclude:
                 continue
+            if key == "_id":
+                _key = "id"
+            else:
+                _key = key
+                
             value = _self[key]
             if isinstance(value, EndlessDocument):
                 if ref_to_id:
                     data = value().key()
                 else:
                     data = dict(value().to_dict())
-                yield (key, data)
+                yield (_key, data)
             else:
-                yield (key, value)
+                yield (_key, value)
             
     def to_json(self, *args, **kwargs):
         if "base64" in kwargs and kwargs["base64"]:
