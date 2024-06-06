@@ -170,7 +170,10 @@ def re_mask_subgroup(subgroup, mask, m):
         length = end - start
         return m.group()[:start] + mask*length + m.group()[end:]
 
-def get_obj_dict(obj):
+def json_parser(obj):
+    if isinstance(obj, bytes):
+        return base64.b64encode(obj).decode("utf-8")
+    
     if hasattr(obj, "__dict__"):
         return obj.__dict__
     else:
@@ -467,7 +470,7 @@ class DocumentLogicContainer():
         _dict = dict(self.to_dict(**kwargs))
         _json = json.dumps(
             _dict, 
-            default=get_obj_dict, 
+            default=json_parser, 
             ensure_ascii=False
         )           
         
@@ -719,7 +722,7 @@ class CollectionLogicContainer():
             to_base64 = False
         
         _dict = dict(self.to_dict(**kwargs))
-        _json = json.dumps(_dict, default=get_obj_dict, ensure_ascii=False) 
+        _json = json.dumps(_dict, default=json_parser, ensure_ascii=False) 
         
         if to_base64:
             return base64.b64encode(_json.encode("utf-8")).decode("utf-8")
@@ -847,7 +850,7 @@ class DatabaseLogicContainer():
             to_base64 = False
             
         _dict = dict(self.to_dict())
-        _json = json.dumps(_dict, default=get_obj_dict, ensure_ascii=False)
+        _json = json.dumps(_dict, default=json_parser, ensure_ascii=False)
         
         if to_base64:
             return base64.b64encode(_json.encode("utf-8")).decode("utf-8")
