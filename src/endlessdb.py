@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import base64
 import os
 import re
 import uuid
@@ -18,31 +19,80 @@ from datetime import datetime
 from bson.objectid import ObjectId
 from functools import partial
 
+class Formatter(logging.Formatter):
+
+    default = "\x1b[39;20m\x1b[49;20m"
+    
+    white_background = "\x1b[47;20m"
+    cyan_background = "\x1b[46;20m"
+    
+    white = "\x1b[37;20m"
+    grey = "\x1b[38;20m"
+    blue = "\x1b[34;20m"
+    green = "\x1b[32;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    
+    bold_blue = "\x1b[34;1m"
+    bold_magenta = "\x1b[35;1m"
+    bold_green = "\x1b[32;1m"
+    bold_white = "\x1b[37;1m"
+    bold_red = "\x1b[31;1m"
+    bold_yellow = "\x1b[33;1m"
+    
+    reset = "\x1b[0m"
+    
+    _levelname = f"{bold_yellow}[{bold_red}%(levelname)s{bold_yellow}]{default}"
+    _application = f"{bold_yellow}[{bold_magenta}%(name)s{bold_yellow}]{default}"
+    _time = f"{bold_yellow}[{bold_white}%(asctime)s{bold_yellow}]{default}"
+    
+    _title = f"{_levelname}{_application}{_time} "
+    _format = f"%(message)s{reset}"
+    
+    FORMATS = {
+        logging.DEBUG: f"{blue}{_title}{blue}{_format}",
+        logging.INFO: f"{green}{_title}{green}{_format}",
+        logging.WARNING: f"{yellow}{_title}{yellow}{_format}",
+        logging.ERROR: f"{red}{_title}{red}{_format}",
+        logging.CRITICAL: f"{bold_red}{_title}{bold_red}{_format}",
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
 class Logger:
+    
     def __init__(self, name):
-        self.name = name
-        
-        format = "%(asctime)s: %(message)s"
-        logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
+        self._name = name
         self._logger = logging.getLogger(name)
+        self._logger.setLevel(logging.DEBUG)
+        self._logger.addHandler(Logger._ch)
+        self._logger.propagate = False
+        
+    def init():
+        Logger._ch = logging.StreamHandler()
+        Logger._ch.setLevel(logging.DEBUG)
+        Logger._ch.setFormatter(Formatter())
     
     def __str__(self) -> str:
-        return f"📝Endlessdb logger({self.name})"
+        return f"📝{self._name}Logger"
         
     def __repr__(self) -> str:
         return self.__str__()
         
     def debug(self, msg):
-        self._logger.debug(f"{self.name}: {msg}")
+        self._logger.debug(msg)
 
     def info(self, msg):
-        self._logger.info(f"{self.name}: {msg}")
+        self._logger.info(msg)
     
     def warning(self, msg):
-        self._logger.warning(f"{self.name}: {msg}")
+        self._logger.warning(msg)
         
     def error(self, msg):
-        self._logger.error(f"{self.name}: {msg}")
+        self._logger.error(msg)
 
 class EndlessConfiguration():
     _override = {}
@@ -383,19 +433,47 @@ class DocumentLogicContainer():
             "$id": self._key
         }
         
-    def to_dict(self):
+    def to_dict(self, *args, **kwargs):
+        if "exclude" in kwargs:
+            exclude = kwargs["exclude"]
+        else:
+            exclude = []
+            
+        if "ref_to_id" in kwargs and kwargs["ref_to_id"]:
+            ref_to_id = True
+        else:
+            ref_to_id = False
+            
         _self = self._
         for key in self._keys:
+            if key in exclude:
+                continue
             value = _self[key]
             if isinstance(value, EndlessDocument):
-                data = dict(value().to_dict())
+                if ref_to_id:
+                    data = value().key()
+                else:
+                    data = dict(value().to_dict())
                 yield (key, data)
             else:
                 yield (key, value)
             
-    def to_json(self):
-        _dict = dict(self.to_dict())
-        _json = json.dumps(_dict, default=get_obj_dict, ensure_ascii=False)           
+    def to_json(self, *args, **kwargs):
+        if "base64" in kwargs and kwargs["base64"]:
+            to_base64 = kwargs.pop("base64")
+        else:
+            to_base64 = False
+        
+        _dict = dict(self.to_dict(**kwargs))
+        _json = json.dumps(
+            _dict, 
+            default=get_obj_dict, 
+            ensure_ascii=False
+        )           
+        
+        if to_base64:
+            return base64.b64encode(_json.encode("utf-8")).decode("utf-8")
+        
         return _json    
 
     def to_yml(self):
@@ -627,16 +705,25 @@ class CollectionLogicContainer():
         self._collection.drop()
         self.virtual = True
     
-    def to_dict(self):
+    def to_dict(self, *args, **kwargs):
         _self = self._
         keys = self.keys()
         for key in keys:
-            data = dict(_self[key]().to_dict())
+            data = dict(_self[key]().to_dict(**kwargs))
             yield (key, data)
     
-    def to_json(self):
-        _dict = dict(self.to_dict())
-        _json = json.dumps(_dict, default=get_obj_dict, ensure_ascii=False)           
+    def to_json(self, *args, **kwargs):
+        if "base64" in kwargs and kwargs["base64"]:
+            to_base64 = kwargs.pop("base64")
+        else:
+            to_base64 = False
+        
+        _dict = dict(self.to_dict(**kwargs))
+        _json = json.dumps(_dict, default=get_obj_dict, ensure_ascii=False) 
+        
+        if to_base64:
+            return base64.b64encode(_json.encode("utf-8")).decode("utf-8")
+                 
         return _json   
 
     def to_yml(self):
@@ -753,9 +840,18 @@ class DatabaseLogicContainer():
             data = dict(_self[key]().to_dict())
             yield (key, data)            
             
-    def to_json(self):
+    def to_json(self, *args, **kwargs):
+        if "base64" in kwargs and kwargs["base64"]:
+            to_base64 = kwargs.pop("base64")
+        else:
+            to_base64 = False
+            
         _dict = dict(self.to_dict())
-        _json = json.dumps(_dict, default=get_obj_dict, ensure_ascii=False)           
+        _json = json.dumps(_dict, default=get_obj_dict, ensure_ascii=False)
+        
+        if to_base64:
+            return base64.b64encode(_json.encode("utf-8")).decode("utf-8")
+                   
         return _json    
 
     def to_yml(self):
@@ -1223,17 +1319,3 @@ class EndlessDatabase():
             yield key, self.__getattr__(key)  
 
 #endregion 📌Endless
-
-class EndlessService():
-    
-    DEBUG = False
-    
-    def __init__(self, edb, config_key):
-        if edb is None:
-            edb = EndlessDatabase()
-        self._edb = edb
-        _config = self._edb().config()
-        self._cfg = _config[config_key]
-        self._log = Logger(__name__)
-        self.DEBUG = self._cfg(False, create=True).debug
-        self._edb().load_defaults()
