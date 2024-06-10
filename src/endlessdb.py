@@ -450,6 +450,11 @@ class DocumentLogicContainer():
             exclude = kwargs["exclude"]
         else:
             exclude = []
+        
+        if "include" in kwargs:
+            include = kwargs["include"]
+        else:
+            include = []
             
         if "ref_to_id" in kwargs and kwargs["ref_to_id"]:
             ref_to_id = True
@@ -458,12 +463,15 @@ class DocumentLogicContainer():
             
         _self = self._
         for key in self._keys:
-            if key in exclude:
-                continue
             if key == "_id":
                 _key = "id"
             else:
                 _key = key
+            if _key in exclude:
+                continue
+            
+            if len(include) > 0 and _key not in include:
+                continue
                 
             value = _self[key]
             if isinstance(value, EndlessDocument):
