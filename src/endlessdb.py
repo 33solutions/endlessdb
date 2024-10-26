@@ -756,7 +756,7 @@ class CollectionLogicContainer():
         _yaml = yaml.dump(_dict, default_flow_style=False, allow_unicode=True)           
         return _yaml
     
-    def from_yml(path): 
+    def from_yml(self, path): 
         with open(path, 'r') as stream:
             try:         
                 yml = yaml.safe_load(stream)
